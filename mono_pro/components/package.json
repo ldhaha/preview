@@ -1,0 +1,52 @@
+{
+	"name": "@lindong123/components",
+	"version": "1.0.13",
+	"main": "index.js",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./index.d.ts",
+			"module": "./dist/vue3/ld-components.es.js",
+			"import": "./dist/vue3/ld-components.es.js",
+			"require": "./dist/vue3/ld-components.umd.js"
+		},
+		"./vue2": {
+			"module": "./dist/vue2/ld-components.es.js",
+			"import": "./dist/vue2/ld-components.es.js",
+			"require": "./dist/vue2/ld-components.umd.js"
+		},
+		"./vue3": {
+			"module": "./dist/vue3/ld-components.es.js",
+			"import": "./dist/vue3/ld-components.es.js",
+			"require": "./dist/vue3/ld-components.umd.js"
+		}
+	},
+	"scripts": {
+		"dev": "vite",
+		"build": "node scripts/build.js",
+		"preinstall": "node scripts/preinstall.js",
+		"preview": "vite preview",
+		"build:vue2": "pnpm i vue@^2.6.0 -D && npx vue-demi-switch 2 && vite build",
+		"build:vue3": "pnpm i vue@^3.0.0 -D && npx vue-demi-switch 3 && vite build"
+	},
+	"peerDependencies": {
+		"@vue/composition-api": "^1.0.0",
+		"vue": "^2.6.0 || >=3.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@vue/composition-api": {
+			"optional": true
+		}
+	},
+	"dependencies": {
+		"vue-demi": "^0.14.10"
+	},
+	"devDependencies": {
+		"@vitejs/plugin-vue": "^6.0.1",
+		"@vitejs/plugin-vue2": "2.2.0",
+		"unplugin-vue2-script-setup": "0.11.4",
+		"vite": "^7.1.2",
+		"vue": "^3.5.21",
+		"vue-template-compiler": "^2.7.16"
+	}
+}

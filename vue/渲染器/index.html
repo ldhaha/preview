@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+	</head>
+
+	<body>
+		<div id="app"></div>
+	</body>
+	<script src="https://unpkg.com/@vue/reactivity@3.0.5/dist/reactivity.global.js"></script>
+
+	<script>
+		const { effect, ref } = VueReactivity;
+
+		function createRenderer(options) {
+			const { createElement, insert, setElementText, patchProps } = options;
+
+			function patchElement(n1, n2) {
+				const el = (n2.el = n1.el);
+				const oldProps = n1.props;
+				const newProps = n2.props;
+				// 第一步：更新 props
+				for (const key in newProps) {
+					if (newProps[key] !== oldProps[key]) {
+						patchProps(el, key, oldProps[key], newProps[key]);
+					}
+				}
+				for (const key in oldProps) {
+					if (!(key in newProps)) {
+						patchProps(el, key, oldProps[key], null);
+					}
+				}
+
+				// 第二步：更新 children
+				patchChildren(n1, n2, el);
+			}
+			function unmount(vnode) {
+				const parent = vnode.el.parentNode;
+				parent && parent.removeChild(vnode.el);
+			}
+
+			function shouldSetAsProp(el, key, value) {
+				if (key === 'form' && el.tagName === 'INPUT') {
+					return false;
+				}
+				return key in el;
+			}
+
+			function mountElement(vnode, container) {
+				const el = (vnode.el = createElement(vnode.type));
+				if (typeof vnode.children === 'string') {
+					setElementText(el, vnode.children);
+				} else if (Array.isArray(vnode.children)) {
+					vnode.children.forEach(child => {
+						patch(null, child, el);
+					});
+				}
+				if (vnode.props) {
+					for (const key in vnode.props) {
+						patchProps(el, key, null, vnode.props[key]);
+					}
+				}
+				insert(el, container);
+			}
+
+			function patch(oldVnode, newVnode, container) {
+				if (oldVnode && oldVnode.type !== newVnode.type) {
+					unmount(oldVnode);
+					oldVnode;
+				}
+
+				const { type } = newVnode;
+				if (type === 'text') {
+					if (!oldVnode) {
+						mountElement(newVnode, container);
+					} else {
+						// 比较文本
+					}
+				} else if (typeof type === 'object') {
+					// 处理组件
+				} else if (type === 'xxx') {
+					// 处理其他
+				}
+
+				if (!oldVnode) {
+					// old不存在，意味着是挂载
+					mountElement(newVnode, container);
+				} else {
+				}
+			}
+
+			function render(vnode, container) {
+				if (vnode) {
+					patch(container._vnode, vnode, container);
+				} else {
+					if (container._vnode) {
+						unmount(container._vnode);
+					}
+				}
+				container._vnode = vnode;
+			}
+
+			function hydrate(vnode, container) {}
+
+			return {
+				render,
+				hydrate,
+			};
+		}
+
+		const vnode = { type: 'h1', children: 'hello' };
+
+		const { render } = createRenderer({
+			// 创建元素
+			createElement(tag) {
+				return document.createElement(tag);
+			},
+			// 设置文本
+			setElementText(el, text) {
+				el.textContent = text;
+			},
+			// 插入元素
+			insert(el, parent, anchor = null) {
+				parent.insertBefore(el, anchor);
+			},
+			patchProps(el, key, oldValue, newValue) {
+				if (/^on/.test(key)) {
+					const invokers = el._vei || (el._vei = {});
+					let invoker = invokers[key];
+					const name = key.slice(2).toLowerCase();
+					if (newValue) {
+						if (!invoker) {
+							invoker = el._vei[key] = e => {
+								if (e.timeStamp < invoker.attached) return;
+								if (Array.isArray(invoker.value)) {
+									invoker.value.forEach(fn => fn(e));
+								} else {
+									invoker.value(e);
+								}
+							};
+							invoker.value = newValue;
+							invoker.attached = Date.now();
+							el.addEventListener(name, invoker);
+						} else {
+							invoker.value = newValue;
+						}
+					} else if (invoker) {
+						el.removeEventListener(name, invoker);
+					}
+				}
+				if (key === 'class') {
+					el.className = newValue || '';
+				} else if (shouldSetAsProp(el, key, newValue)) {
+					const type = typeof el[key];
+					if (type === 'boolean' && newValue === '') {
+						el[key] = true;
+					} else {
+						el[key] = newValue;
+					}
+				} else {
+					el.setAttribute(key, newValue);
+				}
+			},
+		});
+
+		const count = ref(1);
+
+		effect(() => render(vnode, document.getElementById('app')));
+	</script>
+</html>

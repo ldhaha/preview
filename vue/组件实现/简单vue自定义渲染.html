@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Vue组件渲染机制</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 20px;
+				background-color: #f5f5f5;
+			}
+			.container {
+				background: white;
+				border-radius: 8px;
+				padding: 20px;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+			}
+			.my-class {
+				border: 2px solid #4caf50;
+				padding: 15px;
+				margin: 10px 0;
+				border-radius: 4px;
+				background-color: #f1f8e9;
+			}
+			button {
+				background-color: #4caf50;
+				color: white;
+				border: none;
+				padding: 10px 15px;
+				border-radius: 4px;
+				cursor: pointer;
+				margin-right: 10px;
+			}
+			button:hover {
+				background-color: #45a049;
+			}
+			code {
+				background-color: #f4f4f4;
+				padding: 2px 5px;
+				border-radius: 3px;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Vue自定义组件渲染机制</h1>
+			<div id="app"></div>
+			<div class="explanation">
+				<h2>原理解释</h2>
+				<p><code>const instance = (n2.component = n1.component)</code> 这行代码的作用是：</p>
+				<ol>
+					<li>在组件更新时，复用现有的组件实例而不是创建新实例</li>
+					<li><code>n1.component</code> 指向旧的组件实例</li>
+					<li>通过将其赋值给 <code>n2.component</code>，新节点可以继续使用同一个实例</li>
+					<li>这确保了组件状态（如data、生命周期）在更新过程中得以保持</li>
+				</ol>
+				<p>点击按钮观察组件如何更新而不是重新创建。</p>
+			</div>
+		</div>
+
+		<script src="https://unpkg.com/@vue/reactivity@3.0.5/dist/reactivity.global.js"></script>
+		<script>
+			const { reactive, effect, shallowReactive } = VueReactivity;
+
+			// 简单的虚拟节点创建函数
+			function createVNode(type, props = {}, children = null) {
+				return {
+					type,
+					props,
+					children,
+					// 添加component属性占位
+					component: null,
+				};
+			}
+
+			// 简单的DOM创建函数
+			function createElement(vnode) {
+				if (typeof vnode === 'string') {
+					return document.createTextNode(vnode);
+				}
+
+				const element = document.createElement(vnode.type);
+
+				// 设置属性
+				if (vnode.props) {
+					for (const [key, value] of Object.entries(vnode.props)) {
+						if (key === 'class') {
+							element.className = value;
+						} else if (key.startsWith('on')) {
+							const eventName = key.slice(2).toLowerCase();
+							element.addEventListener(eventName, value);
+						} else {
+							element.setAttribute(key, value);
+						}
+					}
+				}
+
+				// 添加子元素
+				if (vnode.children) {
+					if (Array.isArray(vnode.children)) {
+						vnode.children.forEach(child => {
+							element.appendChild(createElement(child));
+						});
+					} else {
+						element.textContent = vnode.children;
+					}
+				}
+				vnode.el = element;
+				return element;
+			}
+
+			// 组件定义
+			const MyComponent = {
+				name: 'MyComponent',
+				props: {
+					title: String,
+				},
+				data() {
+					return {
+						count: 1,
+					};
+				},
+				render() {
+					return createVNode(
+						'div',
+						{
+							class: 'my-class',
+							onClick: () => {
+								this.count++;
+								console.log('Clicked! Count:', this.count);
+							},
+						},
+						`${this.$props.title} - Count: ${this.count}`
+					);
+				},
+			};
+
+			// 初始化组件虚拟节点
+			let CompVNode = createVNode(MyComponent, {
+				title: 'Initial Title',
+				class: 'my-class',
+			});
+
+			// 属性变化检测函数
+			function hasPropsChanged(oldProps, newProps) {
+				const newKeys = Object.keys(newProps);
+				const oldKeys = Object.keys(oldProps);
+
+				if (newKeys.length !== oldKeys.length) {
+					return true;
+				}
+
+				for (let key of newKeys) {
+					if (newProps[key] !== oldProps[key]) {
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			// 解析组件属性
+			function resolveProps(options, propsData) {
+				const props = {};
+				const attrs = {};
+
+				for (const key in propsData) {
+					if (key in options || key === 'class' || key === 'style') {
+						props[key] = propsData[key];
+					} else {
+						attrs[key] = propsData[key];
+					}
+				}
+
+				return [props, attrs];
+			}
+
+			// 挂载组件
+			function mountComponent(vnode, container) {
+				const componentOptions = vnode.type;
+				const { render, data, props: propsOptions } = componentOptions;
+
+				// 初始化数据
+				const state = reactive(data ? data() : {});
+
+				// 解析props
+				const [props] = resolveProps(propsOptions || {}, vnode.props);
+
+				// 创建组件实例
+				const instance = {
+					state,
+					props: shallowReactive(props),
+					isMounted: false,
+					subTree: null,
+				};
+
+				// 将实例保存到vnode上 - 这是关键步骤！
+				vnode.component = instance;
+
+				// 创建响应式渲染效果
+				effect(() => {
+					// 让 render 函数能访问 props 和 state
+
+					const subTree = render.call(
+						{ ...state, $props: instance.props },
+						{ ...state, $props: instance.props }
+					);
+					if (!instance.isMounted) {
+						// 首次挂载
+						const element = createElement(subTree);
+						container.appendChild(element);
+						instance.subTree = subTree;
+						instance.isMounted = true;
+					} else {
+						// 更新
+
+						console.log(subTree);
+						const newElement = createElement(subTree);
+						console.log(newElement);
+						const oldElement = instance.subTree.el;
+						console.log(oldElement);
+						if (oldElement && oldElement.parentNode) {
+							oldElement.parentNode.replaceChild(newElement, oldElement);
+						}
+
+						instance.subTree = subTree;
+					}
+				});
+			}
+
+			// 更新组件
+			function patchComponent(n1, n2) {
+				// 关键代码：复用组件实例
+				const instance = (n2.component = n1.component);
+
+				const { props } = instance;
+
+				if (hasPropsChanged(n1.props, n2.props)) {
+					const [nextProps] = resolveProps(n2.type.props, n2.props);
+
+					// 更新props
+					for (const k in nextProps) {
+						props[k] = nextProps[k];
+					}
+
+					// 删除不再存在的props
+					for (const k in props) {
+						if (!(k in nextProps)) {
+							delete props[k];
+						}
+					}
+				}
+			}
+
+			// 主patch函数
+			function patch(n1, n2, container) {
+				if (n1 && n1.type === n2.type) {
+					// 相同类型节点，执行更新
+					if (typeof n2.type === 'object') {
+						// 组件更新
+						patchComponent(n1, n2);
+					}
+				} else {
+					if (n1) {
+						// 卸载旧节点
+						if (container.contains(n1.el)) {
+							container.removeChild(n1.el);
+						}
+					}
+
+					// 挂载新节点
+					if (typeof n2.type === 'object') {
+						// 挂载组件
+						mountComponent(n2, container);
+					} else {
+						// 挂载普通元素
+						n2.el = createElement(n2);
+						container.appendChild(n2.el);
+					}
+				}
+			}
+
+			// 初始化应用
+			const container = document.getElementById('app');
+
+			// 首次挂载
+			patch(null, CompVNode, container);
+
+			// 添加UI控件用于演示更新
+			const buttonContainer = document.createElement('div');
+			buttonContainer.style.marginTop = '20px';
+
+			const updateButton = document.createElement('button');
+			updateButton.textContent = '更新组件属性';
+			updateButton.onclick = () => {
+				console.log('更新组件属性');
+				const newVNode = createVNode(MyComponent, {
+					title: 'Updated Title ' + Math.floor(Math.random() * 100),
+					class: 'my-class',
+				});
+
+				patch(CompVNode, newVNode, container);
+				CompVNode = newVNode;
+			};
+
+			const resetButton = document.createElement('button');
+			resetButton.textContent = '重置组件';
+			resetButton.onclick = () => {
+				const newVNode = createVNode(MyComponent, {
+					title: 'Initial Title',
+					class: 'my-class',
+				});
+
+				patch(CompVNode, newVNode, container);
+				CompVNode = newVNode;
+			};
+
+			buttonContainer.appendChild(updateButton);
+			buttonContainer.appendChild(resetButton);
+			document.querySelector('.explanation').appendChild(buttonContainer);
+		</script>
+	</body>
+</html>

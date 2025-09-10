@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+	</head>
+	<body></body>
+	<script src="https://unpkg.com/@vue/reactivity@3.0.5/dist/reactivity.global.js"></script>
+
+	<script>
+		const { reactive, effect, shallowReactive } = VueReactivity;
+		const MyComponent = {
+			name: 'MyComponent',
+			props: {
+				title: String,
+			},
+			data() {
+				return {
+					count: 1,
+				};
+			},
+			render() {
+				return {
+					type: 'div',
+					children: `我是文本 ${this.count}`,
+				};
+			},
+		};
+
+		const CompVNode = {
+			type: MyComponent,
+			props: {
+				class: 'my-class',
+			},
+		};
+
+		function hasPropsChanged(oldProps, newProps) {
+			const newPropsKeys = Object.keys(newProps);
+			if (newPropsKeys.length !== Object.keys(oldProps).length) {
+				return true;
+			}
+			for (let key in newProps) {
+				if (newProps[key] !== oldProps[key]) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		function patchComponent(n1, n2, anchor) {
+			const instance = (n2.component = n1.component);
+			const { props } = instance;
+			if (hasPropsChanged(n1.props, n2.props)) {
+				const [nextProps] = resolveProps(n2.type.props, n2.props);
+				for (const k in nextProps) {
+					props[k] = nextProps[k];
+				}
+
+				for (const k in props) {
+					if (!(k in nextProps)) {
+						props[k] = undefined;
+					}
+				}
+			}
+		}
+
+		function patch(n1, n2, container, anchor) {
+			/* 省略之前的判断 */
+			if (typeof type === 'object') {
+				if (!n1) {
+					mountComponent(n2, container, anchor);
+				} else {
+					patchComponent(n1, n2, anchor);
+				}
+			}
+		}
+
+		function resolveProps(options, propsData) {
+			const props = {};
+			const attrs = {};
+			for (const key in propsData) {
+				if (key in options) {
+					props[key] = propsData[key];
+				} else {
+					attrs[key] = propsData[key];
+				}
+			}
+			return [props, attrs];
+		}
+
+		function mountComponent(vnode, container, anchor) {
+			const componentOptions = vnode.type;
+			const {
+				render,
+				data,
+				beforeCreate,
+				created,
+				beforeMount,
+				mounted,
+				beforeUpdate,
+				updated,
+				props: propsOptions,
+			} = componentOptions;
+
+			beforeCreate?.();
+
+			const state = reactive(data());
+
+			const [props, attrs] = resolveProps(propsOptions, vnode.props);
+
+			const instance = { state, isMounted: false, subTree: null, props: shallowReactive(props) };
+
+			vnode.component = instance;
+
+			created?.call(state);
+
+			// 改变this指向，指向响应式的数据,state改变重新渲染
+			effect(() => {
+				const subTree = render.call(state, state);
+				if (!instance.isMounted) {
+					beforeMount?.call(state);
+					patch(null, subTree, container, anchor);
+					instance.isMounted = true;
+					mounted?.call(state);
+				} else {
+					beforeUpdate?.call(state);
+					patch(instance.subTree, subTree, container, anchor);
+					updated?.call(state);
+				}
+				instance.subTree = subTree;
+			});
+		}
+	</script>
+</html>
