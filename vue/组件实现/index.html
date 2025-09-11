@@ -9,7 +9,7 @@
 	<script src="https://unpkg.com/@vue/reactivity@3.0.5/dist/reactivity.global.js"></script>
 
 	<script>
-		const { reactive, effect, shallowReactive } = VueReactivity;
+		const { reactive, effect, shallowReactive, shallowReadonly } = VueReactivity;
 		const MyComponent = {
 			name: 'MyComponent',
 			props: {
@@ -80,13 +80,17 @@
 			const props = {};
 			const attrs = {};
 			for (const key in propsData) {
-				if (key in options) {
+				if (key in options || key.startsWith('on')) {
 					props[key] = propsData[key];
 				} else {
 					attrs[key] = propsData[key];
 				}
 			}
 			return [props, attrs];
+		}
+
+		function onMounted(callback) {
+			currentInstance?.mounted?.push(callback);
 		}
 
 		function mountComponent(vnode, container, anchor) {
@@ -101,6 +105,7 @@
 				beforeUpdate,
 				updated,
 				props: propsOptions,
+				setup,
 			} = componentOptions;
 
 			beforeCreate?.();
@@ -109,24 +114,92 @@
 
 			const [props, attrs] = resolveProps(propsOptions, vnode.props);
 
-			const instance = { state, isMounted: false, subTree: null, props: shallowReactive(props) };
+			const instance = {
+				state,
+				isMounted: false,
+				subTree: null,
+				props: shallowReactive(props),
+				mounted: [],
+			};
+
+			function emit(event, ...args) {
+				const eventName = event.slice(0, 2) === 'on' ? event.slice(2).toLowerCase() : event;
+				const handler = instance.props[`on${eventName}`];
+				handler?.(...args);
+			}
+
+			let currentInstance = null;
+			function setCurrentInstance(instance) {
+				currentInstance = instance;
+			}
+			const slots = vnode.children || {};
+
+			const setupContext = { attrs, emit, slots };
+			setCurrentInstance(instance);
+
+			const setupResult = setup?.(shallowReadonly(instance.props), setupContext);
+			setCurrentInstance(null);
+
+			let setupState = null;
+
+			if (typeof setupResult === 'function') {
+				if (render) {
+					console.log('setup返回了渲染函数，render将忽略');
+					render = setupResult;
+				} else {
+					setupState = setupResult;
+				}
+			}
+
+			const renderContext = new Proxy(instance, {
+				get(t, k, r) {
+					const { state, props, slots } = t;
+					if (k === '$slots') {
+						return slots;
+					} else if (state && k in state) {
+						return state[k];
+					} else if (k in props) {
+						return props[k];
+					} else if (setupState && k in setupState) {
+						// 渲染上下文需要增加对 setupState 的支持
+						return setupState[k];
+					} else {
+						console.error('不存在');
+					}
+				},
+				set(t, k, v, r) {
+					const { state, props } = t;
+					if (state && k in state) {
+						state[k] = v;
+					} else if (k in props) {
+						console.warn(`Attempting to mutate prop "${k}". Props 
+are readonly.`);
+					} else if (setupState && k in setupState) {
+						// 渲染上下文需要增加对 setupState 的支持
+						setupState[k] = v;
+					} else {
+						console.error('不存在');
+					}
+				},
+			});
 
 			vnode.component = instance;
 
-			created?.call(state);
+			created?.call(renderContext);
 
 			// 改变this指向，指向响应式的数据,state改变重新渲染
 			effect(() => {
-				const subTree = render.call(state, state);
+				const subTree = render.call(renderContext, renderContext);
 				if (!instance.isMounted) {
-					beforeMount?.call(state);
+					beforeMount?.call(renderContext);
 					patch(null, subTree, container, anchor);
 					instance.isMounted = true;
-					mounted?.call(state);
+					instance.mounted.forEach(fn => fn());
+					mounted?.call(renderContext);
 				} else {
-					beforeUpdate?.call(state);
+					beforeUpdate?.call(renderContext);
 					patch(instance.subTree, subTree, container, anchor);
-					updated?.call(state);
+					updated?.call(renderContext);
 				}
 				instance.subTree = subTree;
 			});
