@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+  <!-- dom加载结束 -->
+  <script src="./a.js" defer></script>
+
+  <!-- 位置随机 -->
+  <script src="./b.js" async></script>
+
+  <!-- 同步的 -->
+  <script src="./c.js"></script>
+  <style 'console.log(4)'></style>
+  <body>
+    <script>
+      console.log(5);
+    
+
+      // 页面所有资源加载结束，最后执行
+      window.addEventListener('load', () => {
+        console.log(6);
+      });
+      //  在defer之后执行
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log(7);
+      });
+      let i = 0;
+      while (i < 9999) {
+        i++;
+      }
+      console.log(8);
+    </script>
+  </body>
+</html>

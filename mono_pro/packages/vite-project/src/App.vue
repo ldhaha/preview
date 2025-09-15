@@ -1,4 +1,5 @@
 <script setup>
+import { computed, ref } from 'vue';
 import HelloWorld from './components/HelloWorld.vue';
 import { formatDate } from '@ld/utils';
 import axios from 'axios';
@@ -6,11 +7,21 @@ import LdButtons from '../../../components/LdButton/LdButton.vue';
 
 const date = formatDate(new Date());
 console.log(axios.create().get('/123'));
+
+const a = ref('123');
+let b = 4;
+const ld = computed(() => {
+	return b;
+});
+b = 5;
+b = 6;
 </script>
 
 <template>
 	<div>
+		{{ ld }}
 		<ld-button></ld-button>
+		{{ a }}
 		{{ date }}
 		<LdButtons />
 		<a href="https://vite.dev" target="_blank">

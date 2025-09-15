@@ -1,44 +1,27 @@
-const p1 = new Promise((resolve) => {
-  resolve("resolve1");
-})
-  .then((res) => {
-    console.log(res);
-    return new Promise((resolve) => {
-      resolve(2);
-    })
-      .then((res) => {
-        console.log(res);
-      })
-      .finally(() => {
-        new Promise((resolve) => {
-          resolve("finally1");
-        }).then((res) => {
-          console.log(res);
-        });
-      });
-  })
-  .finally((res) => {
-    console.log("finally", res);
-  });
+async function async1() {
+	console.log('async1 start');
+	await async2();
+	console.log('async1 end');
+}
 
-// Promise.resolve()
-// 	.then(() => {
-// 		console.log('task1');
-// 		Promise.resolve()
-// 			.then(() => console.log('task3'))
-// 			.finally(() => {
-// 				console.log('finally1');
-// 			});
-// 		Promise.resolve()
-// 			.then(() => console.log('task4'))
-// 			.finally(() => {
-// 				console.log('finally2');
-// 			});
-// 	})
-// 	.then(() => {
-// 		console.log('task2');
-// 	})
-// 	.finally(() => {
-// 		console.log('finally');
-// 	});
-// 输出顺序: task1,  task3, task4 task2
+async function async2() {
+	console.log('async2');
+}
+
+console.log('script start');
+
+setTimeout(() => {
+	console.log('setTimeout');
+});
+
+async1();
+
+new Promise(resolve => {
+	console.log('promise1');
+	resolve();
+}).then(function () {
+	console.log('promise2');
+});
+console.log('script end');
+
+// script start   async1 start async2 start a  promise1 script end sync1 end    promise2   setTimeout
