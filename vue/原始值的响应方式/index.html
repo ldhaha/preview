@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+	</head>
+	<body></body>
+</html>
+<script src="../非原始值的响应方式/index.js"></script>
+
+<script>
+	function ref(val) {
+		const wrapper = { value: val };
+		Object.defineProperty(wrapper, '__v_isRef', {
+			value: true,
+		});
+		return reactive(wrapper);
+	}
+	const refVal = ref(1);
+	effect(() => {
+		console.log(refVal.value + 'lindong');
+	});
+	refVal.value = 2;
+
+	// 失去响应式解决
+	const dd = reactive({ foo: 1 }); // ...obj会失去响应式
+
+	function toRef(obj, key) {
+		const wrapper = {
+			get value() {
+				return obj[key];
+			},
+			set value(val) {
+				obj[key] = val;
+			},
+		};
+		Object.defineProperty(wrapper, '__v_isRef', {
+			value: true,
+		});
+		return wrapper;
+	}
+
+	function toRefs(obj) {
+		const ret = {};
+		for (let key in obj) {
+			ret[key] = toRef(obj, key);
+		}
+		return ret;
+	}
+
+	const ld = reactive({
+		a: 1,
+		b: 2,
+	});
+
+	function proxyRefs(target) {
+		return new Proxy(target, {
+			get(target, key, receiver) {
+				const value = Reflect.get(target, key, receiver);
+				return value.__v_isRef ? value.value : value;
+			},
+			set(target, key, value, receiver) {
+				if (target.__v_isRef) {
+					target.value = value;
+				}
+				return Reflect.set(target, key, value, receiver);
+			},
+		});
+	}
+
+	const { a, b } = proxyRefs({ ...toRefs(ld) });
+	console.log(a);
+</script>
