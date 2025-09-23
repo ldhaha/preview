@@ -1,0 +1,138 @@
+## 浏览器
+
+#### get和post区别
+
+| 特性                 | GET 请求                                                     | POST 请求                                                    |
+| :------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **语义（核心区别）** | **获取（Read）** 数据。应该是**安全**且**幂等**的。          | **提交（Create）** 数据。通常是**不安全**、**不幂等**的。    |
+| **参数位置**         | 附在 **URL** 之后，以 `?` 开头，`&` 连接。                   | 放在 **请求体（Body）** 中。                                 |
+| **参数可见性**       | **明文暴露**在URL中，会被浏览器历史记录、服务器日志保存，不安全。 | 相对安全，参数在Body中，不会直接暴露在URL上。（但HTTPS下才真正安全） |
+| **数据长度限制**     | 有限制（因浏览器和服务器对URL长度有限制，通常几KB）。        | 理论上无限制（服务器可配置Body大小限制）。                   |
+| **缓存与书签**       | 可被**浏览器缓存**，可**收藏为书签**。                       | 默认**不会被缓存**，也不能被收藏为书签。                     |
+| **安全性**           | 绝对不要用GET传输敏感信息（如密码），因为URL是明文的。       | 相对安全，但**不代表加密**，必须配合HTTPS。                  |
+| **幂等性**           | **幂等**：执行多次相同的GET请求，效果与执行一次相同。        | **不幂等**：执行多次相同的POST请求，可能会产生多个结果（如创建多个订单）。 |
+| **TCP数据包**        | 浏览器发送GET请求时，会将Header和Data（即URL参数）**一并**发送。 | 浏览器通常先发送Header，服务器响应`100 Continue`后，再发送Body。 |
+
+#### async和defer区别
+
+这两个属性都用于**异步加载**外部 JavaScript 文件，即不会阻塞 HTML 解析。
+
+async乱序，先加载完先执行，加载时不阻塞，执行时会阻塞
+
+defer会在html加载完之后执行，按顺序执行
+
+#### DomContentLoaded和onLoad事件
+
+前者在所有同步代码执行结束。会在defer之前执行，而后者会在包括async之后执行
+
+#### preload和prefetch区别
+
+前者代码有高的优先级，一般用在网站比较重要的一些资源上比如字体之类的，后者表示浏览器空闲时才去下载
+
+#### 重绘和重排
+
+- **重排（Reflow / Layout）**：你**改变了文档的布局结构**。比如，增加或删除了一段文字、调整了图片大小、改变了页边距。这需要你重新计算整个页面的布局，然后才能打印。
+  - **核心**：计算元素**几何信息**（位置、大小）。**这是开销最大的操作。**
+- **重绘（Repaint）**：你只改变了文档的**视觉效果，但不影响布局**。比如，把某些文字颜色从黑色改成红色，或者改变了背景图片。你不需要重新计算布局，只需要在原来的布局上重新上色即可。
+  - **核心**：更新元素的**像素显示**（颜色、背景、边框等）。**开销相对较小。**
+
+**关键关系：重排必定会引起重绘，但重绘不一定会引起重排。**
+
+#### 强缓存和协商缓存的区别
+
+1.首先强缓存会向服务器发送请求，而协商缓存不会
+
+2.强缓存通过在响应头里设置Expires(时间戳)活着Cache-Control(no-cache(不使用强缓存，但是会使用协商缓存),no-store（完全不使用缓存，但是如果此时会不会还有协商缓存的标？或者带上了但是会不会生效）,public,private,max-age=)
+
+3.协商缓存通过Last-Modified` / `If-Modified-Since和ETag` / `If-None-Match，前者是文件最后一次修改的时间后者是文件的哈希值，通过服务器将值返回，再次请求时浏览器再带上，前者可能不准确，因为一秒内文件可能多次修改
+
+#### 同源策略，跨域解决方法
+
+同源是指相同协议，相同域名，相同端口
+
+不同源的话：
+
+1. **AJAX / Fetch 请求**：不能向不同源的服务器发送异步请求（但可以发送，浏览器会拦截响应）
+2. **Cookie、LocalStorage、IndexedDB**：无法读取不同源网站的本地存储
+3. **DOM 操作**：无法通过 `iframe` 获取或操作不同源页面的DOM
+
+解决方案:
+
+1.jsonp  动态创建script标签，并且src指向请求的api并加上回调函数,但是只能处理get请求，并且容易被注入恶意代码
+
+```javascript
+<script src="https://api.com/data?callback=handleResponse"></script>
+```
+
+2.cors 需要前后端都参与
+
+## css
+
+#### BFC是什么
+
+bfc即块及格式化上下文，这个区域内部的元素布局如何，完全不会影响到外部元素。同样，外部的元素也不会影响到这个区域内部的布局
+
+1. **根元素** (`<html>`)
+2. **浮动元素** (`float` 值不为 `none`)
+3. **绝对定位元素** (`position` 为 `absolute` 或 `fixed`)
+4. **display 为特定值**的元素：
+   - `inline-block`
+   - `table-cell`, `table-caption`
+   - `flex`, `inline-flex`
+   - `grid`, `inline-grid`
+5. **overflow 值不为 `visible` 和 `clip` 的块元素** (`overflow`: `hidden`, `auto`, `scroll`)
+6. **`contain`** 值为 `layout`, `content`, `paint`, `strict` 的元素
+7. **弹性项目（Flex items）和网格项目（Grid items）**（它们的内容会创建一个新的BFC）
+
+## JS
+
+#### 什么是闭包
+
+内部函数用到了外部函数的变量
+
+#### 说一下事件循环
+
+由于js是单线程的，当遇到一些比如setTimout的函数，如果同步执行，则会阻塞执行，因此采取的方式为，首先执行同步代码，当遇到setTimout的时，会交给其他线程去计时，并将回调函数放入延时队列，并且立马结束这个函数，当遇到promise。then时会放入微队列，当同步函数执行完时，即调用栈为空，会检查这些队列，并且优先检查微任务对列，并将第一个任务压入调用栈内，执行，并且重复上述过程，当微任务队列的函数都执行完时，就会将延时队列的任务压入栈内，并且重复上述过程
+
+#### 实现一个new
+
+```javascript
+function myNew(){
+  const obj = {};
+  const constructor = [].shift.call(arguments);
+  obj.__pro__to = constructor.prototype;
+  const res = constructor.call(obj,...arguments);
+  return typeof res === 'object'? res : object;
+}
+```
+
+#### 函数柯里化
+
+```javascript
+function curried(fn){
+  function curry(...args){
+    arr.push(...args);
+    if(arr.length === fn.length){
+      fn.call(this,...arr)
+    }else{
+      return function (...args2) {
+        return curry.apply(this, ...[...args, ...args2])
+      }
+    }
+  }
+  return curry;
+}
+
+```
+
+## Vue
+
+#### v-if和v-show的区别
+
+V-show会设置元素的diplay为none,而v-if里会从dom结构里，去掉这个元素
+
+## Vite
+
+#### vite快的原因
+
+开发模式下，vite基于浏览器支持esm，并且实行，按需加载，不再打包整个应用，当浏览器import {} from 的语法，会发起一个网络请求，vite会对这个文件进行处理，采用esbuild,速度极快，并且进行缓存，并且对于一些第三方库（比如lodash-es），从里面倒入几个函数，需要发起几次网络请求，vite会将他们打包成一个文件，当再次请求这个文件时，会从nodemodules/.vite/deps返回

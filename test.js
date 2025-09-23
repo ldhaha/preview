@@ -1,19 +1,13 @@
-function Person(name) {
-	this.name = name;
-}
-Person.prototype.sayName = function () {
-	console.log(this.name);
-};
+console.log('start');
+new Promise((resolve, reject) => {
+	resolve('123');
+}).then(() => {
+	setTimeout(() => {
+		Promise.resolve('456').then(res => {
+			console.log(456);
+		});
+	}, 1000);
+});
 
-function Child(name, age) {
-	Person.call(this, name);
-	this.age = age;
-}
-
-Child.prototype = Object.create(Person.prototype);
-Child.prototype.constructor = Child;
-const child = new Child('张三', 18);
-console.log(child.name);
-console.log(child.age);
-child.sayName();
-export { Person };
+setTimeout(() => console.log('ld'), 2000);
+console.log('script end');
