@@ -21,7 +21,8 @@ type MyReadonly<T, K extends keyof T> = {
 	readonly [P in K]: T[P];
 };
 
-type MyExclude<K, T> = K extends T ? never : T;
+type MyExclude<T, K> = T extends K ? never : T;
+type myExclude = MyExclude<number | string | boolean, string>;
 
 type MyExtract<T, K> = T extends K ? T : never;
 
