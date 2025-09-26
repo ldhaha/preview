@@ -3,5 +3,5 @@ export function add() {
 }
 
 export function minus() {
-    console.log(minus)
+    console.log('minus')
 }
