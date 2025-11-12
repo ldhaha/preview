@@ -1,23 +1,105 @@
 <!DOCTYPE html>
 <html>
-	<body>
-		<script type="module">
-			import { Person } from './test.js';
-			console.log('123', Person);
-			console.log(5);
 
-			window.addEventListener('load', () => {
-				console.log(6);
-			});
+<head>
+	<meta charset="utf-8">
+	<title>固定列表格</title>
+	<style>
+		table {
+			border-collapse: collapse;
+		}
 
-			document.addEventListener('DOMContentLoaded', () => {
-				console.log(7);
-			});
-			let i = 0;
-			while (i < 9999) {
-				i++;
-			}
-			console.log(8);
-		</script>
-	</body>
+		.sticky-table {
+			overflow: auto;
+			height: 400px;
+			width: 1000px;
+			position: relative;
+		}
+
+		.sticky-table td,
+		.sticky-table th {
+			border: 1px solid #c7d8ee;
+			width: 150px;
+			min-width: 150px;
+			height: 30px;
+			padding: 5px;
+			outline-color: #c7d8ee;
+			outline-style: solid;
+			outline-width: 1px;
+		}
+
+		.sticky-table th {
+			position: sticky;
+			top: 0;
+			background-color: #eaf4ff;
+		}
+
+		.sticky-table td:first-child,
+		.sticky-table th:first-child {
+			position: sticky;
+			left: 0;
+			z-index: 1;
+			background-color: #eaf4ff;
+		}
+
+		.sticky-table th:first-child {
+			z-index: 2;
+		}
+
+		.sticky-table td:nth-child(2) {
+			position: sticky;
+			left: 151px;
+			z-index: 3;
+			background-color: #eaf4ff;
+		}
+
+		.sticky-table th:nth-child(2) {
+			position: sticky;
+			left: 151px;
+			z-index: 4;
+		}
+
+		.sticky-table td:nth-child(3) {
+			position: sticky;
+			left: 301px;
+			z-index: 3;
+			background-color: #eaf4ff;
+		}
+
+		.sticky-table th:nth-child(3) {
+			position: sticky;
+			left: 301px;
+			z-index: 4;
+		}
+	</style>
+</head>
+
+<body style="padding: 0px;margin: 0px;">
+	<div class="sticky-table">
+		<table>
+			<thead>
+				<tr>
+					<<th>列1</< /th>
+						<<th>列2</< /th>
+							<<th>列3</< /th>
+								<<th>列4</< /th>
+									<<th>列5</< /th>
+										<<th>列6</< /th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>内容1</td>
+					<td>内容2</td>
+					<td>内容3</td>
+					<td>内容4</td>
+					<td>内容5</td>
+					<td>内容6</td>
+				</tr>
+				<!-- 更多数据行 -->
+			</tbody>
+		</table>
+	</div>
+</body>
+
 </html>
