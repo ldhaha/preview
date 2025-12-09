@@ -14,8 +14,9 @@ var combine = function (n, k) {
         }
     }
 
-    backtrack(1, []); // 从1开始，初始为空数组
+    backtrack(1, []);
+    // 从1开始，初始为空数组
     return res;
 };
 
-combine(10, 7)
+combine(10, 7);

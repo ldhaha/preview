@@ -6,10 +6,10 @@ Promise.prototype.myAll = function (promises) {
 		}
 		const res = [];
 		let count = 0;
-		promises.forEach((promise, index) => {
-			Promise.resolve(promise)
+		for (let i = 0; i < promises.length; i++) {
+			Promise.resolve(promises[i])
 				.then(val => {
-					res[index] = val;
+					res[i] = val;
 					count++;
 					if (count === promises.length) {
 						resolve(res);
@@ -18,6 +18,19 @@ Promise.prototype.myAll = function (promises) {
 				.catch(err => {
 					reject(err);
 				});
-		});
+		}
+		// promises.forEach((promise, index) => {
+		// 	Promise.resolve(promise)
+		// 		.then(val => {
+		// 			res[index] = val;
+		// 			count++;
+		// 			if (count === promises.length) {
+		// 				resolve(res);
+		// 			}
+		// 		})
+		// 		.catch(err => {
+		// 			reject(err);
+		// 		});
+		// });
 	});
 };
