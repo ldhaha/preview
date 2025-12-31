@@ -1,0 +1,7 @@
+.activeTab {
+  color: blue!important;
+  font-weight: bold!important;
+}
+.deactiveTab {
+  color: gray;
+}

@@ -11,25 +11,27 @@
 
 </body>
 <script>
-	var lengthOfLongestSubstring = function (s) {
-		let max = 0;
-		let left = 0;
-		let newStr = ''
-		for (let r = 0; r < s.length; r++) {
-			if (newStr.includes(s[r])) {
-				while (newStr.includes(s[r])) {
-					left++;
-					newStr = s.slice(left, r)
-				}
-
+	var generateParenthesis = function (n) {
+		const res = [];
+		function backtrack(current, open, close) {
+			if (current.length === n * 2) {
+				res.push(current);
+				return;
 			}
-			newStr = s.slice(left, r + 1);
-			max = Math.max(max, r - left + 1)
-		}
-		return max;
-	};
+			// 决策1：添加左括号（如果还有剩余）
+			if (open < n) {
+				backtrack(current + '(', open + 1, close);
+			}
 
-	console.log(lengthOfLongestSubstring("abcabcbb"));
+			// 决策2：添加右括号（如果右括号数量小于左括号数量）
+			if (close < open) {
+				backtrack(current + ')', open, close + 1);
+			}
+		}
+		backtrack('', 0, 0)
+		return res;
+	};
+	generateParenthesis(3)
 </script>
 
 </html>
